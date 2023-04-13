@@ -1,6 +1,6 @@
 token.txt
 
-./data
+data/
 
 annealing_schedule.xlsx
 
