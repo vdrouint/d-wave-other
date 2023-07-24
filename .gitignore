@@ -6,4 +6,7 @@ data/
 
 data_prathus_runs/
 
+data_shim/
+
+
 tests.ipynb
