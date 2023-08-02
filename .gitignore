@@ -8,5 +8,8 @@ data_prathus_runs/
 
 data_shim/
 
+plaquette-gauge-model/data
+
+plaquette-gauge-model/figures
 
 tests.ipynb
