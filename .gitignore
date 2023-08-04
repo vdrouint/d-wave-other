@@ -12,4 +12,6 @@ plaquette-gauge-model/data
 
 plaquette-gauge-model/figures
 
+triangulation/data
+
 tests.ipynb
