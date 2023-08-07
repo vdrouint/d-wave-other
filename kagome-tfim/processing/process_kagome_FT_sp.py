@@ -246,23 +246,27 @@ def find_nearest(array, value):
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return idx
+
+
 ####
 #onto the code
 ####
 
+####
+#CAREFUL - put these files from kagome_embedding.ipynb in the correct folder
+####
 #load the graph and the dictionary
-
-#final_qubit_dictionary = np.load("./data/dict_qbit_to_lattice.npy", allow_pickle=True).item()
-final_qubit_dictionary = np.load("./data/dict_qbit_to_lattice_periodic.npy", allow_pickle=True).flat[0]
-Kag_graph = pickle.load(open('./data/Kag_graph_periodic.pickle', 'rb'))
+final_qubit_dictionary = np.load("./lattice_files_v2/dict_qbit_to_lattice_periodic.npy", allow_pickle=True).flat[0]
+Kag_graph = pickle.load(open('./lattice_files_v2/Kag_graph_periodic.pickle', 'rb'))
 
 
-#folder_base = "../data_prathus_runs/APQ1/"
-#Jmax = 0.66
-# folder_base = "../data_prathus_runs/periodic Kagome fwd/"
-all_folders = ["../data_prathus_runs/APQ1/", "../data_prathus_runs/periodic Kagome fwd2/", "../data_prathus_runs/periodic Kagome fwd3/", "../data_prathus_runs/periodic Kagome fwd4/", "../data_prathus_runs/periodic Kagome fwd5/"]
-# Jmax = 0.66
-allJvals = [0.66, 0.66, 0.83, 1.0, 1.4]
+####
+#CAREFUL - find your own path and J values  
+####
+folder_base = "../../data_prathus_runs/"
+all_folders = [folder_base + "data_prathus_runs/APQ new/"]
+allJvals = [0.83]
+#you can put more folders in there, but you likely wont need it
 
 # folder_global = folder_base + "raw"
 
@@ -270,170 +274,51 @@ where_to_save = "../data_prathus_runs/processed_FT/"
 folder_create = Path(where_to_save[:-1])
 folder_create.mkdir(parents=True, exist_ok=True)
 
+
+####
+#CAREFUL - change these parameters at your own risks. 
+#changing each of them scales quadratically - you can increase them if you have the compute time.
+####
+
+#sample among only Nreads of all the available responses
+Nreads = 200
+#number of k points to be computed
+#for 2D plots, it is roughly (numKpoints_bulk)^2
+numKpoints_bulk = 19
+#for the line plot, it is roughly 4*numKpoints_line
+numKpoints_line = 40
+
 for mf in range(len(all_folders)):
 
     print("start of folder" + all_folders[mf])
     folder_global = all_folders[mf] + "raw"
     Jmax = allJvals[mf]
 
-    if folder_global == "../data_prathus_runs/APQ1/raw":
+    dict_h = {}
+    mainfolder = list(Path(folder_global).glob('*'))
+    #mainfolder = list(Path('./data/raw_apq_zx').glob('*'))
+    for foldername in mainfolder:
+        h1 = str(foldername).split('/')[-1].split('=')[-1]
+        if h1 != ".DS_Store" and h1 != ".DS_Store:Zone.Identifier":
+            #print("h1=",h1)
+            hJtag = "{:.3f}".format(float(h1)/Jmax)
+            dict_h.update({hJtag:h1})
+    # print("various h/J in folder: " + folder_global)
+    # print(dict_h.keys())
 
-        dict_h = {}
-        mainfolder = list(Path(folder_global).glob('*'))
-        #mainfolder = list(Path('./data/raw_apq_zx').glob('*'))
-        for foldername in mainfolder:
-            h1 = str(foldername).split('/')[-1].split('=')[-1]
-            if h1 != ".DS_Store" and h1 != ".DS_Store:Zone.Identifier":
-                #print("h1=",h1)
-                hJtag = "{:.3f}".format(float(h1)/Jmax)
-                dict_h.update({hJtag:h1})
-        # print("various h/J in folder: " + folder_global)
-        # print(dict_h.keys())
+    ####
+    #CAREFUL - choose the right format for your folders to be accessed
+    #what h/J do you want?
+    #what s_p do you want?
+    ####
+    hoverJ_to_process = ['0.000', '2.004', '3.908', '5.211', '0.501', '2.505', '1.503', '3.006', '3.507', '1.002']
+    #hoverJ_to_process = ['0.000']
+    s_vals = ['s=0.7', 's=0.2']
 
+    for hview in hoverJ_to_process:
+        for sview in s_vals:
+            folder = folder_global + "/h1=" + dict_h[hview] + "/" + sview
 
-        hoverJ_to_process = ['0.000', '2.004', '3.908', '5.211', '0.501', '2.505', '1.503', '3.006', '3.507', '1.002']
-        #hoverJ_to_process = ['0.000']
-        s_vals = ['s=0.7', 's=0.2']
-        Nreads = 200
-
-        for hview in hoverJ_to_process:
-            for sview in s_vals:
-                folder = folder_global + "/h1=" + dict_h[hview] + "/" + sview
-
-                mainfolder = list(Path(folder).glob('*'))
-                #mainfolder = list(Path('./data/raw_apq_zx').glob('*'))
-
-                reps = 0
-                folders_to_open = []
-                if len(mainfolder) != 0:
-                    print("success in finding this folder")
-                else:
-                    print('problem')
-                for foldername in mainfolder:
-                    if str(foldername)[-4:] == ".npz":
-                        #print(foldername)
-                        reps += 1
-                        folders_to_open.append(foldername)
-
-                # def open_file(path):
-                    
-                #     file=np.load(path)
-                    
-                #     resp=file['resp']
-                #     paramsarray=file['paramsarray']
-                #     missingqs=file['missingqs']
-                #     twochains=file['twochains']
-                #     nodes=file['final_nodes']
-                    
-                #     return resp,paramsarray,missingqs,twochains,nodes
-
-                all_configs = []
-                all_energies = []
-                for k in range(len(folders_to_open)):
-                    file=np.load(folders_to_open[k])
-                    resps = file['resp']
-
-                    for i in range(len(resps)):
-                        frequency = resps[i][2]
-                        for freq in range(frequency):
-                            all_configs.append(resps[i][0])
-                            all_energies.append(resps[i][1])
-
-                all_configs = np.array(all_configs)
-                file2=np.load(folders_to_open[0])
-                qubit_variables = np.array(file2["final_nodes"])
-
-                #order of configs to access
-                order = list(range(len(all_configs)))
-                random.shuffle(order)
-
-                ######
-                #do fourier transform (3D)
-                ######
-                print("start 3D FT")
-
-                numKpoints = 19
-                feed_in_configs = all_configs[order[:Nreads]]
-                total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = Sq_for_record(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints)
-
-                ####
-                #saving
-                ####
-
-                filename_hs = where_to_save + "3D_FT_h=" + hview + "_s=" + sview + ".hdf5"
-
-                try:
-                    os.remove(filename_hs)
-                except OSError:
-                    pass
-                with h5py.File(Path(filename_hs), "w") as f:
-                    f.create_dataset("kx", data = kx_vals)
-                    f.create_dataset("ky", data = ky_vals)
-                    f.create_dataset("avg_abs_sigma", data = S_spin)
-                    f.create_dataset("avg_sigmasigma", data = S2_spin)
-                    f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
-                    f.create_dataset("avg_sigma", data = structure_factor)
-
-
-                ######
-                #do fourier transform (3D)
-                ######
-                print("start 1D FT")
-
-                numKpoints = 40
-                feed_in_configs = all_configs[order[:Nreads]]
-                total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = line_BZ(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints)
-
-                ####
-                #saving
-                ####
-
-                filename_hs = where_to_save + "line_FT_h=" + hview + "_s=" + sview + ".hdf5"
-
-                try:
-                    os.remove(filename_hs)
-                except OSError:
-                    pass
-                with h5py.File(Path(filename_hs), "w") as f:
-                    f.create_dataset("kx", data = kx_vals)
-                    f.create_dataset("ky", data = ky_vals)
-                    f.create_dataset("avg_abs_sigma", data = S_spin)
-                    f.create_dataset("avg_sigmasigma", data = S2_spin)
-                    f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
-                    f.create_dataset("avg_sigma", data = structure_factor)
-                    
-                print("done with h/J=" + hview + " and s=" + sview)
-
-    else:
-
-        dict_h = {}
-        all_hoverJ_vals = []
-        all_h_str = []
-        mainfolder = list(Path(folder_global).glob('*'))
-        #mainfolder = list(Path('./data/raw_apq_zx').glob('*'))
-        for foldername in mainfolder:
-            h1 = str(foldername).split('/')[-1].split('=')[-1]
-            if h1 != ".DS_Store" and h1 != ".DS_Store:Zone.Identifier":
-                #print("h1=",h1)
-                hJtag = "{:.3f}".format(float(h1)/Jmax)
-                dict_h.update({hJtag:h1})
-                all_hoverJ_vals.append(float(h1)/Jmax)
-                all_h_str.append(h1)
-        # print("various h/J in folder: " + folder_global)
-        # print(dict_h.keys())
-
-
-        # hoverJ_to_process = ['0.000', '2.004', '3.908', '5.211', '0.501', '2.505', '1.503', '3.006', '3.507', '1.002']
-        hoverJ_to_process = ['0.0', '1.0', '2.0', '3.0', '4.0']
-
-
-        Nreads = 200
-
-        for hview in hoverJ_to_process:
-            index = find_nearest(all_hoverJ_vals, float(hview))
-            hval = all_h_str[index]
-
-            folder = folder_global + "/h1=" + hval + "/"
             mainfolder = list(Path(folder).glob('*'))
             #mainfolder = list(Path('./data/raw_apq_zx').glob('*'))
 
@@ -480,21 +365,21 @@ for mf in range(len(all_folders)):
             #order of configs to access
             order = list(range(len(all_configs)))
             random.shuffle(order)
+            #this allows to pick Nreads random configs among all the 20000 that we have
 
             ######
             #do fourier transform (3D)
             ######
             print("start 3D FT")
 
-            numKpoints = 19
             feed_in_configs = all_configs[order[:Nreads]]
-            total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = Sq_for_record(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints)
+            total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = Sq_for_record(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints_bulk)
 
             ####
             #saving
             ####
 
-            filename_hs = where_to_save + "3D_FT_J=" + str(Jmax) + "_h=" + hval +  ".hdf5"
+            filename_hs = where_to_save + "3D_FT_h=" + hview + "_s=" + sview + ".hdf5"
 
             try:
                 os.remove(filename_hs)
@@ -514,15 +399,14 @@ for mf in range(len(all_folders)):
             ######
             print("start 1D FT")
 
-            numKpoints = 40
             feed_in_configs = all_configs[order[:Nreads]]
-            total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = line_BZ(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints)
+            total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = line_BZ(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints_line)
 
             ####
             #saving
             ####
 
-            filename_hs = where_to_save + "line_FT_J=" + str(Jmax) + "_h=" + hval +  ".hdf5"
+            filename_hs = where_to_save + "line_FT_h=" + hview + "_s=" + sview + ".hdf5"
 
             try:
                 os.remove(filename_hs)
@@ -536,6 +420,5 @@ for mf in range(len(all_folders)):
                 f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
                 f.create_dataset("avg_sigma", data = structure_factor)
                 
-            print("done with J=" + str(Jmax) + " and h=" + hval)
-
+            print("done with h/J=" + hview + " and s=" + sview)
 

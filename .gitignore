@@ -8,10 +8,12 @@ data_prathus_runs/
 
 data_shim/
 
-plaquette-gauge-model/data
-
-plaquette-gauge-model/figures
-
-triangulation/data
-
 tests.ipynb
+
+kagome-tfim/data
+
+kagome-tfim/older_versions
+
+kagome-tfim/processing/lattice_files_v1
+
+kagome-tfim/processing/lattice_files_v2
