@@ -247,6 +247,59 @@ def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
     return idx
 
+def Triangle_q_for_record(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoints):
+    #L_Kpoints needs to be odd to see the q=0 component
+    ascale = 2;
+    total_K, kx_vals, ky_vals = momentum_grid_kagome_scale(L_Kpoints, ascale)
+
+    structure_factor = np.zeros(len(total_K))
+    S2_spin = np.zeros(len(total_K)) + 1j*np.zeros(len(total_K))
+    num_reads = len(all_record_configs)
+
+    vec1 = 2*np.array([1.0, 0.0])
+    vec2 = 2*np.array([0.5, 0.8660254])
+
+    for k in range(num_reads):
+        response_analyzed = {}
+        for j in range(len(qubit_variables)):
+            response_analyzed.update({qubit_variables[j]:all_record_configs[k][j]})
+
+        for kp in range(len(total_K)):
+            val_K = np.array([0.0, 0.0]) + 1j*np.array([0.0, 0.0])
+            val_mK = np.array([0.0, 0.0]) + 1j*np.array([0.0, 0.0])
+            for r1 in qubit_dictionary.keys():
+                kpoint = total_K[kp]
+                three_sites = qubit_dictionary[r1]
+                r1vec_temp = np.array(r1)
+                r1vec = r1vec_temp[0]*vec1 + r1vec_temp[1]*vec2 + 0.5*(np.array([1.0, 0.0]) + np.array([0, 0.8660254]))
+                all_data = [response_analyzed[three_sites[i]] for i in range(3)]
+                if all_data == [1,-1,-1]:
+                    arrow_triangle = np.array([1,0])
+                elif all_data == [-1,1,-1]:
+                    arrow_triangle = np.array([-1/2,np.sqrt(3)/2])
+                elif all_data == [-1,-1,1]:
+                    arrow_triangle = np.array([-1/2,-np.sqrt(3)/2])
+                else :
+                    arrow_triangle = np.array([0,0])
+                #partA = response_analyzed[three_sites[0]]*np.array([1,0])
+                #partB = response_analyzed[three_sites[1]]*np.array([-1/2,np.sqrt(3)/2])
+                #partC = response_analyzed[three_sites[2]]*np.array([-1/2, -np.sqrt(3)/2])
+                #arrow_triangle = partA + partB + partC
+                val_K += np.exp(1j*np.dot(kpoint, r1vec))*(arrow_triangle)
+                val_mK += np.exp(-1j*np.dot(kpoint, r1vec))*(arrow_triangle)
+            val_K = val_K/len(qubit_dictionary)
+            val_mK = val_mK/len(qubit_dictionary)
+            structure_factor[kp] += np.linalg.norm(val_K)
+            S2_spin[kp] += np.dot(val_K,val_mK)
+        if num_reads != 1:
+            if k % (num_reads // 10) == 0:
+                print("Done with reads: ", k)
+
+    structure_factor = structure_factor / num_reads
+    S2_spin = S2_spin / num_reads
+
+    return total_K, kx_vals, ky_vals, S2_spin, structure_factor
+
 
 ####
 #onto the code
@@ -256,9 +309,10 @@ def find_nearest(array, value):
 #CAREFUL - put these files from kagome_embedding.ipynb in the correct folder
 ####
 #load the graph and the dictionary
-final_qubit_dictionary = np.load("./lattice_files_v2/dict_qbit_to_lattice_periodic.npy", allow_pickle=True).flat[0]
-Kag_graph = pickle.load(open('./lattice_files_v2/Kag_graph_periodic.pickle', 'rb'))
-
+final_qubit_dictionary = np.load("../data/dict_qbit_to_lattice_periodic.npy", allow_pickle=True).flat[0]
+Kag_graph = pickle.load(open('../data/Kag_graph_periodic.pickle', 'rb'))
+unit_cells = np.load("../data/unitcells.npy", allow_pickle=True).flat[0]
+unit_cells_down = np.load("../data/unitcells_down.npy", allow_pickle=True).flat[0]
 
 ####
 #CAREFUL - find your own path and J values  
@@ -420,5 +474,33 @@ for mf in range(len(all_folders)):
                 f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
                 f.create_dataset("avg_sigma", data = structure_factor)
                 
+            #FT for the triangles (dimers) themselves
+
+            print("start Dimer FFT")
+
+            feed_in_configs = all_configs[order[:Nreads]]
+            total_K, kx_vals, ky_vals, S2_spin, structure_factor = Triangle_q_for_record(feed_in_configs, unit_cells, qubit_variables, numKpoints_bulk)
+            
+            ####
+            #saving
+            ####
+
+            filename_hs = where_to_save + "dimer_FT_h=" + hview + "_s=" + sview + ".hdf5"
+
+            try:
+                os.remove(filename_hs)
+            except OSError:
+                pass
+            with h5py.File(Path(filename_hs), "w") as f:
+                f.create_dataset("kx", data = kx_vals)
+                f.create_dataset("ky", data = ky_vals)
+                # f.create_dataset("avg_abs_sigma", data = S_spin)
+                f.create_dataset("avg_sigmasigma", data = S2_spin)
+                # f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
+                f.create_dataset("avg_sigma", data = structure_factor)
+                
             print("done with h/J=" + hview + " and s=" + sview)
+
+
+    
 
