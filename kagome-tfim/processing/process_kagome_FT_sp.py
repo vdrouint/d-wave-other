@@ -142,7 +142,14 @@ def momentum_grid_kagome_scale(N, ascale):
 def Sq_for_record(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoints):
     #L_Kpoints needs to be odd to see the q=0 component
 
-    total_K, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+    # total_K, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+
+    # total_K, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+    total_K_1, kx_vals, ky_vals = momentum_grid_kagome(5)
+    total_K_2, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+    # plot_kx = np.concatenate((kx_vals, kx_vals_2))
+    # plot_ky = np.concatenate((ky_vals, ky_vals_2))
+    total_K = np.concatenate((total_K_1, total_K_2))
 
     structure_factor = np.zeros(len(total_K)) + 1j*np.zeros(len(total_K))
     # structure_factor_mK = np.zeros(len(total_K)) + 1j*np.zeros(len(total_K))
@@ -188,7 +195,7 @@ def Sq_for_record(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoin
     S2_spin = S2_spin / num_reads
     S3_spin = S3_spin / num_reads
 
-    return total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor
+    return total_K, S_spin, S2_spin, S3_spin, structure_factor
     
 
 def line_BZ(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoints):
@@ -239,7 +246,7 @@ def line_BZ(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoints):
     S2_spin = S2_spin / num_reads
     S3_spin = S3_spin / num_reads
 
-    return total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor
+    return total_K, S_spin, S2_spin, S3_spin, structure_factor
 
 
 def find_nearest(array, value):
@@ -250,7 +257,12 @@ def find_nearest(array, value):
 def Triangle_q_for_record(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoints):
     #L_Kpoints needs to be odd to see the q=0 component
     ascale = 2;
-    total_K, kx_vals, ky_vals = momentum_grid_kagome_scale(L_Kpoints, ascale)
+    # total_K, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+    total_K_1, kx_vals, ky_vals = momentum_grid_kagome_scale(5, ascale)
+    total_K_2, kx_vals, ky_vals = momentum_grid_kagome_scale(L_Kpoints, ascale)
+    # plot_kx = np.concatenate((kx_vals, kx_vals_2))
+    # plot_ky = np.concatenate((ky_vals, ky_vals_2))
+    total_K = np.concatenate((total_K_1, total_K_2))
 
     structure_factor = np.zeros(len(total_K))
     S2_spin = np.zeros(len(total_K)) + 1j*np.zeros(len(total_K))
@@ -298,7 +310,7 @@ def Triangle_q_for_record(all_record_configs, qubit_dictionary, qubit_variables,
     structure_factor = structure_factor / num_reads
     S2_spin = S2_spin / num_reads
 
-    return total_K, kx_vals, ky_vals, S2_spin, structure_factor
+    return total_K, S2_spin, structure_factor
 
 
 ####
@@ -427,7 +439,7 @@ for mf in range(len(all_folders)):
             print("start 3D FT")
 
             feed_in_configs = all_configs[order[:Nreads]]
-            total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = Sq_for_record(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints_bulk)
+            total_K, S_spin, S2_spin, S3_spin, structure_factor = Sq_for_record(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints_bulk)
 
             ####
             #saving
@@ -440,8 +452,7 @@ for mf in range(len(all_folders)):
             except OSError:
                 pass
             with h5py.File(Path(filename_hs), "w") as f:
-                f.create_dataset("kx", data = kx_vals)
-                f.create_dataset("ky", data = ky_vals)
+                f.create_dataset("total_K", data = total_K)
                 f.create_dataset("avg_abs_sigma", data = S_spin)
                 f.create_dataset("avg_sigmasigma", data = S2_spin)
                 f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
@@ -454,7 +465,7 @@ for mf in range(len(all_folders)):
             print("start 1D FT")
 
             feed_in_configs = all_configs[order[:Nreads]]
-            total_K, kx_vals, ky_vals, S_spin, S2_spin, S3_spin, structure_factor = line_BZ(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints_line)
+            total_K, S_spin, S2_spin, S3_spin, structure_factor = line_BZ(feed_in_configs, final_qubit_dictionary, qubit_variables, numKpoints_line)
 
             ####
             #saving
@@ -467,8 +478,7 @@ for mf in range(len(all_folders)):
             except OSError:
                 pass
             with h5py.File(Path(filename_hs), "w") as f:
-                f.create_dataset("kx", data = kx_vals)
-                f.create_dataset("ky", data = ky_vals)
+                f.create_dataset("total_K", data = total_K)
                 f.create_dataset("avg_abs_sigma", data = S_spin)
                 f.create_dataset("avg_sigmasigma", data = S2_spin)
                 f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
@@ -479,7 +489,7 @@ for mf in range(len(all_folders)):
             print("start Dimer FFT")
 
             feed_in_configs = all_configs[order[:Nreads]]
-            total_K, kx_vals, ky_vals, S2_spin, structure_factor = Triangle_q_for_record(feed_in_configs, unit_cells, qubit_variables, numKpoints_bulk)
+            total_K, S2_spin, structure_factor = Triangle_q_for_record(feed_in_configs, unit_cells, qubit_variables, numKpoints_bulk)
             
             ####
             #saving
@@ -492,8 +502,7 @@ for mf in range(len(all_folders)):
             except OSError:
                 pass
             with h5py.File(Path(filename_hs), "w") as f:
-                f.create_dataset("kx", data = kx_vals)
-                f.create_dataset("ky", data = ky_vals)
+                f.create_dataset("total_K", data = total_K)
                 # f.create_dataset("avg_abs_sigma", data = S_spin)
                 f.create_dataset("avg_sigmasigma", data = S2_spin)
                 # f.create_dataset("avg_abs_sigmasigma", data = S3_spin)
