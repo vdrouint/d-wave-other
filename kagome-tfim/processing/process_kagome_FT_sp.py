@@ -332,6 +332,9 @@ def Triangle_q_for_record(all_record_configs, qubit_dictionary, qubit_variables,
 ####
 #load the graph and the dictionary
 final_qubit_dictionary = np.load("../data/dict_qbit_to_lattice_periodic.npy", allow_pickle=True).flat[0]
+######
+#careful - filter this with sublatt_dict_truncer
+######
 Kag_graph = pickle.load(open('../data/Kag_graph_periodic.pickle', 'rb'))
 unit_cells = np.load("../data/unitcells.npy", allow_pickle=True).flat[0]
 unit_cells_down = np.load("../data/unitcells_down.npy", allow_pickle=True).flat[0]
