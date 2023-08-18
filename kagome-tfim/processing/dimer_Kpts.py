@@ -256,13 +256,10 @@ def find_nearest(array, value):
 
 def Triangle_q_for_record(all_record_configs, qubit_dictionary, qubit_variables, L_Kpoints):
     #L_Kpoints needs to be odd to see the q=0 component
-    # ascale = 2;
-    # # total_K, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
-    # total_K_1, kx_vals, ky_vals = momentum_grid_kagome_scale(5, ascale)
-    # total_K_2, kx_vals, ky_vals = momentum_grid_kagome_scale(L_Kpoints, ascale)
-
-    total_K_1, kx_vals, ky_vals = momentum_grid_kagome(5)
-    total_K_2, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+    ascale = 2;
+    # total_K, kx_vals, ky_vals = momentum_grid_kagome(L_Kpoints)
+    total_K_1, kx_vals, ky_vals = momentum_grid_kagome_scale(5, ascale)
+    total_K_2, kx_vals, ky_vals = momentum_grid_kagome_scale(L_Kpoints, ascale)
     # plot_kx = np.concatenate((kx_vals, kx_vals_2))
     # plot_ky = np.concatenate((ky_vals, ky_vals_2))
     total_K = np.concatenate((total_K_1, total_K_2))
@@ -294,13 +291,6 @@ def Triangle_q_for_record(all_record_configs, qubit_dictionary, qubit_variables,
                     arrow_triangle = np.array([-1/2,np.sqrt(3)/2])
                 elif all_data == [-1,-1,1]:
                     arrow_triangle = np.array([-1/2,-np.sqrt(3)/2])
-                #other values
-                elif all_data == [-1,1,1]:
-                    arrow_triangle = np.array([-1,0])
-                elif all_data == [1,-1,1]:
-                    arrow_triangle = np.array([1/2,-np.sqrt(3)/2])
-                elif all_data == [1,1,-1]:
-                    arrow_triangle = np.array([1/2,np.sqrt(3)/2])
                 else :
                     arrow_triangle = np.array([0,0])
                 #partA = response_analyzed[three_sites[0]]*np.array([1,0])
